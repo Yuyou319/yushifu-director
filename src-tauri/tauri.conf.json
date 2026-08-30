@@ -1,0 +1,32 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "于师傅画布",
+  "version": "0.1.0",
+  "identifier": "com.yushifu.canvas",
+  "build": {
+    "beforeDevCommand": "echo nobuild",
+    "beforeBuildCommand": "echo nobuild",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../design"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "于师傅画布 · 节点式多模态创作台",
+        "width": 1320,
+        "height": 860,
+        "minWidth": 960,
+        "minHeight": 600,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"]
+  }
+}

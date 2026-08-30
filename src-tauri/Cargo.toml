@@ -1,0 +1,15 @@
+[package]
+name = "yushifu-canvas"
+version = "0.1.0"
+edition = "2021"
+description = "于师傅画布 - 节点式多模态创作工作台"
+license = "MIT"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-http = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

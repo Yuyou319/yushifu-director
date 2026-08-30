@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>于师傅画布 - 节点式多模态创作台</title>
+  <style>
+    :root {
+      --bg: #F5F5F7;
+      --surface: #FFFFFF;
+      --text-primary: #1D1D1F;
+      --text-secondary: #6E6E73;
+      --text-tertiary: #A1A1A6;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-strong: rgba(0, 0, 0, 0.16);
+      --accent: #007AFF;
+      --accent-hover: #0051D5;
+      --accent-soft: #E8F2FF;
+      --success: #34C759;
+      --warning: #FF9500;
+      --error: #FF3B30;
+      --purple: #AF52DE;
+      --purple-soft: #F5E8FF;
+      --indigo: #5856D6;
+      --indigo-soft: #EAE8FF;
+      --orange: #FF9500;
+      --orange-soft: #FFF2E2;
+      --pink: #FF2D55;
+      --pink-soft: #FFE8EC;
+      --teal: #5AC8FA;
+      --teal-soft: #E8F8FF;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.02);
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+      --shadow-xl: 0 24px 80px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.47059;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+
+    /* Top Bar */
+    .topbar {
+      height: 56px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--indigo) 100%);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-md);
+    }
+    .logo svg { width: 18px; height: 18px; color: white; }
+    .brand { display: flex; flex-direction: column; }
+    .brand-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .brand-sub { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
+    .actions { display: flex; align-items: center; gap: 10px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      height: 32px; padding: 0 14px; border-radius: 8px;
+      border: 1px solid transparent; background: transparent;
+      color: var(--text-primary); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 120ms ease;
+      white-space: nowrap;
+    }
+    .btn:hover { background: rgba(0, 0, 0, 0.04); }
+    .btn:active { transform: scale(0.96); }
+    .btn-secondary {
+      background: var(--surface); border-color: var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-secondary:hover { background: #FAFAFA; border-color: var(--border-strong); }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 1px 2px rgba(0, 122, 255, 0.25), 0 4px 8px rgba(0, 122, 255, 0.15);
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-icon { padding: 0; width: 32px; justify-content: center; }
+
+    /* Workspace */
+    .workspace { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px; flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 20;
+    }
+    .sidebar-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+    .sidebar-title {
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .search-box { position: relative; width: 100%; }
+    .search-box input {
+      width: 100%; height: 32px; padding: 0 28px 0 10px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text-primary);
+      font-size: 13px; outline: none; transition: all 120ms ease;
+    }
+    .search-box input:focus {
+      background: #fff; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+    }
+    .search-box input::placeholder { color: var(--text-tertiary); }
+    .search-box svg {
+      position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+      width: 14px; height: 14px; color: var(--text-secondary);
+    }
+    .sidebar-scroll { flex: 1; overflow-y: auto; padding: 8px 12px 16px; }
+    .category { margin-bottom: 2px; }
+    .category-header {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 32px; padding: 0 8px; border-radius: 8px;
+      cursor: pointer; user-select: none;
+      color: var(--text-secondary); font-weight: 500; font-size: 12px;
+      transition: background 120ms ease;
+    }
+    .category-header:hover { background: rgba(0, 0, 0, 0.03); }
+    .category-header.active { color: var(--text-primary); }
+    .category-header .chevron { transition: transform 200ms ease; color: var(--text-tertiary); }
+    .category.collapsed .chevron { transform: rotate(-90deg); }
+    .category-items { padding: 4px 0 8px 4px; }
+    .category.collapsed .category-items { display: none; }
+    .node-chip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; margin-bottom: 4px;
+      border-radius: 10px; cursor: pointer;
+      transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+    }
+    .node-chip:hover {
+      background: #fff; border-color: var(--border);
+      box-shadow: var(--shadow-md); transform: translateY(-1px);
+    }
+    .node-chip:active { transform: scale(0.98); }
+    .node-icon {
+      width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .node-icon.blue { background: var(--accent-soft); color: var(--accent); }
+    .node-icon.purple { background: var(--purple-soft); color: var(--purple); }
+    .node-icon.indigo { background: var(--indigo-soft); color: var(--indigo); }
+    .node-icon.orange { background: var(--orange-soft); color: var(--orange); }
+    .node-icon.pink { background: var(--pink-soft); color: var(--pink); }
+    .node-icon.teal { background: var(--teal-soft); color: var(--teal); }
+    .node-info { display: flex; flex-direction: column; }
+    .node-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+    .node-desc { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+
+    /* Canvas */
+    .canvas-area {
+      flex: 1; position: relative; overflow: hidden;
+      background-color: var(--bg);
+      background-image: radial-gradient(circle, #D1D1D6 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .canvas-area::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.8), transparent 70%);
+      pointer-events: none;
+    }
+    .nodes-layer { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+    .connection-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+    .connection-path {
+      fill: none; stroke: #D1D1D6; stroke-width: 2;
+      pointer-events: stroke; cursor: pointer;
+      transition: stroke 120ms ease;
+    }
+    .connection-path:hover { stroke: #FF3B30; }
+    .connection-path.selected { stroke: #FF3B30; stroke-width: 3; }
+    .connection-temp { fill: none; stroke: #007AFF; stroke-width: 2; stroke-dasharray: 4 4; pointer-events: none; }
+    .conn-delete { pointer-events: all; cursor: pointer; }
+    .node-card {
+      position: absolute; width: 220px; background: #fff;
+      border-radius: 16px; border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      cursor: grab; transition: box-shadow 200ms ease, transform 100ms ease;
+      overflow: hidden; user-select: none; pointer-events: auto;
+    }
+    .node-card:active { cursor: grabbing; }
+    .node-card.selected {
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25), var(--shadow-xl);
+      border-color: rgba(0, 122, 255, 0.4);
+    }
+    .node-header {
+      height: 40px; padding: 0 14px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .node-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .node-title { font-size: 13px; font-weight: 600; flex: 1; }
+    .node-body { padding: 12px 14px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+    .node-param {
+      background: var(--bg); border-radius: 8px; padding: 8px 10px;
+      color: var(--text-primary); font-size: 12px; margin-bottom: 8px;
+    }
+    .node-thumb {
+      width: 100%; height: 86px; background: var(--bg); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary); font-size: 11px; border: 1px dashed var(--border);
+    }
+    .node-footer {
+      height: 32px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px; position: relative;
+    }
+    .port {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #D1D1D6; border: 2px solid #fff;
+      box-shadow: 0 0 0 1px #D1D1D6;
+      position: absolute; top: 50%; transform: translateY(-50%);
+      cursor: crosshair; transition: all 150ms ease;
+    }
+    .port:hover { background: var(--accent); box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2); }
+    .port.input { left: -5px; }
+    .port.output { right: -5px; }
+    .port-label { font-size: 10px; color: var(--text-tertiary); }
+
+    .canvas-toolbar {
+      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px; background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-radius: 14px; border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg); z-index: 50;
+    }
+    .canvas-toolbar .btn { height: 30px; width: 30px; padding: 0; justify-content: center; border-radius: 8px; }
+
+    /* Properties Panel */
+    .properties {
+      width: 320px; flex-shrink: 0; background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 20;
+    }
+    .props-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+    .props-title { font-size: 15px; font-weight: 600; }
+    .props-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .props-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .prop-group { margin-bottom: 20px; }
+    .prop-label { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    .prop-desc { font-size: 11px; color: var(--text-tertiary); margin-bottom: 10px; line-height: 1.4; }
+    .prop-input, .prop-select, .prop-textarea {
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text-primary); font-size: 13px; outline: none;
+      transition: all 120ms ease;
+    }
+    .prop-input:focus, .prop-select:focus, .prop-textarea:focus {
+      background: #fff; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+    }
+    .prop-textarea { min-height: 80px; resize: vertical; }
+    .prop-row { display: flex; gap: 10px; }
+    .prop-row .prop-group { flex: 1; }
+    .preview-box {
+      aspect-ratio: 16 / 10; background: var(--bg); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary); font-size: 12px;
+      border: 1px dashed var(--border);
+    }
+    .run-btn {
+      width: 100%; height: 36px; margin-top: 8px;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 10px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 120ms ease;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .run-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .run-btn:active { transform: translateY(0); }
+
+    /* Status Bar */
+    .statusbar {
+      height: 28px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      font-size: 11px; color: var(--text-secondary); z-index: 100;
+    }
+    .status-left { display: flex; align-items: center; gap: 12px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-tertiary); }
+
+    /* Node delete button */
+    .node-delete {
+      margin-left: auto; width: 24px; height: 24px; border: none;
+      background: transparent; color: var(--text-tertiary);
+      border-radius: 6px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: all 120ms ease; flex-shrink: 0;
+    }
+    .node-delete:hover { background: var(--pink-soft); color: var(--error); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1000; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(8px) saturate(180%);
+      -webkit-backdrop-filter: blur(8px) saturate(180%);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      width: 440px; max-width: calc(100vw - 40px);
+      background: var(--surface); border-radius: 18px;
+      box-shadow: var(--shadow-xl); border: 1px solid var(--border);
+      overflow: hidden; animation: modalIn 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 18px; border-bottom: 1px solid var(--border);
+    }
+    .modal-title { font-size: 16px; font-weight: 600; }
+    .modal-body { padding: 18px; max-height: 60vh; overflow-y: auto; }
+    .modal-footer {
+      display: flex; justify-content: flex-end; gap: 10px;
+      padding: 14px 18px; border-top: 1px solid var(--border);
+    }
+
+    /* Context menu */
+    .ctx-menu {
+      position: fixed; z-index: 1100; display: none;
+      min-width: 200px; max-height: 60vh; overflow-y: auto;
+      background: var(--surface); border-radius: 12px;
+      border: 1px solid var(--border); box-shadow: var(--shadow-xl);
+      padding: 6px; backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+    }
+    .ctx-title {
+      font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+      padding: 6px 10px 4px; letter-spacing: 0.04em;
+    }
+    .ctx-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; transition: background 120ms ease;
+    }
+    .ctx-item:hover { background: rgba(0, 0, 0, 0.05); }
+    .ctx-item.ctx-danger { color: var(--error); }
+    .ctx-item.ctx-danger:hover { background: var(--pink-soft); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="logo-area">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="5" />
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 8V3" />
+            <path d="M16 12h5" />
+            <path d="M12 16v5" />
+            <path d="M8 12H3" />
+          </svg>
+        </div>
+        <div class="brand">
+          <span class="brand-title">于师傅画布</span>
+          <span class="brand-sub">节点式多模态创作台</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          保存
+        </button>
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          载入
+        </button>
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          导出
+        </button>
+        <button class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          导入
+        </button>
+        <button class="btn btn-secondary" id="apiSettingsBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
+          模型 / API 设置
+        </button>
+        <button class="btn btn-primary" id="runAllBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          运行
+        </button>
+      </div>
+    </header>
+
+    <!-- Workspace -->
+    <div class="workspace">
+      <!-- Left Sidebar: Node Library -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            节点库
+          </div>
+          <div class="search-box">
+            <input type="text" placeholder="搜索节点..." id="nodeSearch" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+        </div>
+        <div class="sidebar-scroll" id="nodeLibrary"></div>
+      </aside>
+
+      <!-- Center Canvas -->
+      <div class="canvas-area" id="canvas">
+        <svg class="connection-layer" id="connections"></svg>
+        <div class="nodes-layer" id="nodes"></div>
+        <div class="canvas-toolbar">
+          <button class="btn btn-icon" title="放大" id="zoomIn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="btn btn-icon" title="缩小" id="zoomOut">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="btn btn-icon" title="适应画布" id="fitCanvas">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
+          <button class="btn btn-icon" title="全屏" id="fullscreenBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Sidebar: Properties -->
+      <aside class="properties">
+        <div class="props-header">
+          <div class="props-title" id="propTitle">属性</div>
+          <div class="props-sub" id="propSub">选择一个节点查看并编辑参数</div>
+        </div>
+        <div class="props-body" id="propBody">
+          <div class="empty-state">点击画布中的节点以编辑参数</div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Status Bar -->
+    <footer class="statusbar">
+      <div class="status-left">
+        <span style="display:flex;align-items:center;gap:6px"><span class="status-dot"></span> 就绪</span>
+        <span id="selectedNodeLabel">未选择节点</span>
+      </div>
+      <div>自动保存于 12:29</div>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">模型 / API 设置</div>
+        <button class="btn btn-icon" id="settingsClose" title="关闭">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="prop-group">
+          <div class="prop-label">API 提供商</div>
+          <select class="prop-select" id="setProvider">
+            <option value="openai">OpenAI</option>
+            <option value="azure">Azure OpenAI</option>
+            <option value="local">本地 / 兼容端点</option>
+          </select>
+        </div>
+        <div class="prop-group">
+          <div class="prop-label">Base URL</div>
+          <input class="prop-input" id="setBaseUrl" placeholder="https://api.openai.com/v1" />
+        </div>
+        <div class="prop-group">
+          <div class="prop-label">API Key</div>
+          <input class="prop-input" id="setApiKey" type="password" placeholder="sk-..." />
+        </div>
+        <div class="prop-group">
+          <div class="prop-label">默认文本模型</div>
+          <input class="prop-input" id="setTextModel" placeholder="gpt-4o" />
+        </div>
+        <div class="prop-group">
+          <div class="prop-label">默认图像模型</div>
+          <input class="prop-input" id="setImageModel" placeholder="Flux Dev" />
+        </div>
+        <div class="prop-desc">设置保存在浏览器本地（localStorage），仅用于本地原型演示。</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="settingsCancel">取消</button>
+        <button class="btn btn-primary" id="settingsSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Context Menu -->
+  <div class="ctx-menu" id="ctxMenu"></div>
+
+  <script>
+    // Node type colors
+    const TYPE_COLORS = {
+      input: { color: '#007AFF', soft: '#E8F2FF', cls: 'blue' },
+      text: { color: '#AF52DE', soft: '#F5E8FF', cls: 'purple' },
+      image: { color: '#5856D6', soft: '#EAE8FF', cls: 'indigo' },
+      video: { color: '#FF9500', soft: '#FFF2E2', cls: 'orange' },
+      audio: { color: '#FF2D55', soft: '#FFE8EC', cls: 'pink' },
+      output: { color: '#5AC8FA', soft: '#E8F8FF', cls: 'teal' }
+    };
+
+    // Node library definition
+    const nodeLibrary = [
+      {
+        key: 'input', label: '输入', icon: 'input',
+        items: [
+          { type: 'input', name: '提示词', desc: '文本提示词', icon: 'text' },
+          { type: 'input', name: '参考图', desc: '上传或引用图片', icon: 'image' }
+        ]
+      },
+      {
+        key: 'text', label: '文本', icon: 'text',
+        items: [
+          { type: 'text', name: '文本生成', desc: 'LLM 生成文本', icon: 'pen' },
+          { type: 'text', name: '分镜脚本', desc: '视频分镜脚本', icon: 'clapper' },
+          { type: 'text', name: '改写润色', desc: '优化文本表达', icon: 'sparkle' },
+          { type: 'text', name: '翻译', desc: '多语言翻译', icon: 'globe' },
+          { type: 'text', name: '图生文', desc: '图片反推提示词', icon: 'imageText' }
+        ]
+      },
+      {
+        key: 'image', label: '图像', icon: 'image',
+        items: [
+          { type: 'image', name: '文生图', desc: '文本生成图像', icon: 'wand' },
+          { type: 'image', name: '图生图', desc: '参考图生成新图', icon: 'image' },
+          { type: 'image', name: '超分放大', desc: '提升图像分辨率', icon: 'maximize' },
+          { type: 'image', name: '智能抠图', desc: '自动去除背景', icon: 'scissors' },
+          { type: 'image', name: '局部重绘', desc: '图像局部修复', icon: 'brush' }
+        ]
+      },
+      {
+        key: 'video', label: '视频', icon: 'video',
+        items: [
+          { type: 'video', name: '文生视频', desc: '文本生成视频', icon: 'film' },
+          { type: 'video', name: '图生视频', desc: '图片生成视频', icon: 'imageVideo' },
+          { type: 'video', name: '视频转视频', desc: '风格化转换', icon: 'shuffle' },
+          { type: 'video', name: '对口型', desc: '音频驱动口型', icon: 'mouth' }
+        ]
+      },
+      {
+        key: 'audio', label: '音频', icon: 'audio',
+        items: [
+          { type: 'audio', name: '生音频', desc: '文本生成音效', icon: 'speaker' },
+          { type: 'audio', name: '音乐生成', desc: '生成背景音乐', icon: 'music' },
+          { type: 'audio', name: '歌词', desc: '生成或处理歌词', icon: 'mic' }
+        ]
+      },
+      {
+        key: 'output', label: '输出', icon: 'output',
+        items: [
+          { type: 'output', name: '输出 / 预览', desc: '查看最终结果', icon: 'eye' }
+        ]
+      }
+    ];
+
+    // SVG icon map
+    const ICONS = {
+      input: '<path d="M3 12h12"/><path d="M15 8l4 4-4 4"/>',
+      text: '<path d="M4 7V5h16v2"/><path d="M9 20h6"/><path d="M12 5v15"/>',
+      image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+      pen: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+      clapper: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 4l4 8"/><path d="M14 4l4 8"/>',
+      sparkle: '<path d="m12 3-1.9 5.8H4l5.6 4-2.1 6.3 6.4-4.7 6.4 4.7-2.1-6.3 5.6-4h-6.1Z"/>',
+      globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+      imageText: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10"/><path d="M7 12h6"/>',
+      wand: '<path d="m15 4 3 3"/><path d="M7.5 18.5 11 15l3 3-3.5 3.5a2.12 2.12 0 0 1-3-3Z"/><path d="m14 8 3-3"/>',
+      maximize: '<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>',
+      scissors: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.1" y2="15.9"/><line x1="14.8" y1="14.8" x2="20" y2="20"/>',
+      brush: '<path d="m9.06 11.9 5.66-5.66a2.12 2.12 0 1 1 3 3l-5.66 5.66"/><path d="M7 21a2.12 2.12 0 0 1-3-3l5.66-5.66"/>',
+      film: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+      imageVideo: '<rect x="3" y="3" width="18" height="18" rx="2"/><polygon points="10 8 16 12 10 16 10 8"/>',
+      shuffle: '<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/>',
+      mouth: '<path d="M12 2a10 10 0 1 0 10 10"/><path d="M8 15c1.5 2 4.5 2.5 6.5 1"/>',
+      speaker: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>',
+      music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+      mic: '<path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="10"/><rect x="9" y="2" width="6" height="11" rx="3"/>',
+      eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+      output: '<path d="M12 5V3"/><path d="M18 12h2"/><path d="M12 21v-2"/><path d="M4 12h2"/><circle cx="12" cy="12" r="4"/>',
+      trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'
+    };
+
+    function svgIcon(name, size = 14) {
+      const path = ICONS[name] || ICONS['text'];
+      return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+    }
+
+    // Render node library
+    const libraryEl = document.getElementById('nodeLibrary');
+    function renderLibrary() {
+      libraryEl.innerHTML = nodeLibrary.map(cat => `
+        <div class="category" data-cat="${cat.key}">
+          <div class="category-header active">
+            <span>${cat.label}</span>
+            <span class="chevron">${svgIcon('input', 12)}</span>
+          </div>
+          <div class="category-items">
+            ${cat.items.map(item => `
+              <div class="node-chip" data-type="${item.type}" data-name="${item.name}">
+                <div class="node-icon ${TYPE_COLORS[item.type].cls}">${svgIcon(item.icon, 14)}</div>
+                <div class="node-info">
+                  <span class="node-name">${item.name}</span>
+                  <span class="node-desc">${item.desc}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      // Collapse toggle
+      libraryEl.querySelectorAll('.category-header').forEach(header => {
+        header.addEventListener('click', () => {
+          header.parentElement.classList.toggle('collapsed');
+        });
+      });
+
+      // Add node from library
+      libraryEl.querySelectorAll('.node-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const type = chip.dataset.type;
+          const name = chip.dataset.name;
+          addNode(type, name);
+        });
+      });
+    }
+    renderLibrary();
+
+    // Search filter
+    document.getElementById('nodeSearch').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      libraryEl.querySelectorAll('.category').forEach(cat => {
+        let hasVisible = false;
+        cat.querySelectorAll('.node-chip').forEach(chip => {
+          const match = chip.textContent.toLowerCase().includes(term);
+          chip.style.display = match ? 'flex' : 'none';
+          if (match) hasVisible = true;
+        });
+        cat.style.display = hasVisible || term === '' ? 'block' : 'none';
+        if (term !== '') cat.classList.remove('collapsed');
+      });
+    });
+
+    // Canvas state
+    let nodes = [
+      { id: 'n1', type: 'input', name: '提示词', x: 100, y: 130, param: '一只宇航员猫在月球上弹吉他，霓虹灯光，科幻风格', outputs: [{ id: 'n1-o1', label: 'prompt' }] },
+      { id: 'n2', type: 'input', name: '参考图', x: 100, y: 340, outputs: [{ id: 'n2-o2', label: 'image' }] },
+      { id: 'n3', type: 'image', name: '文生图', x: 420, y: 190, param: '模型：Flux Dev\n尺寸：1024 × 1024\n步数：28', inputs: [{ id: 'n3-i3a', label: 'prompt' }, { id: 'n3-i3b', label: 'image' }], outputs: [{ id: 'n3-o3', label: 'image' }] },
+      { id: 'n4', type: 'output', name: '输出 / 预览', x: 720, y: 210, inputs: [{ id: 'n4-i4', label: 'result' }] }
+    ];
+    let connections = [
+      { from: 'n1-o1', to: 'n3-i3a' },
+      { from: 'n2-o2', to: 'n3-i3b' },
+      { from: 'n3-o3', to: 'n4-i4' }
+    ];
+    let selectedId = 'n3';
+    let draggedId = null;
+    let dragOffset = { x: 0, y: 0 };
+
+    const nodesLayer = document.getElementById('nodes');
+    const connectionsLayer = document.getElementById('connections');
+    const canvas = document.getElementById('canvas');
+
+    function getPortCenter(nodeId, portId) {
+      const nodeEl = document.getElementById(nodeId);
+      if (!nodeEl) return { x: 0, y: 0 };
+      const port = nodeEl.querySelector(`[data-port="${portId}"]`);
+      if (!port) return { x: 0, y: 0 };
+      const nodeRect = nodesLayer.getBoundingClientRect();
+      const portRect = port.getBoundingClientRect();
+      return {
+        x: portRect.left - nodeRect.left + portRect.width / 2,
+        y: portRect.top - nodeRect.top + portRect.height / 2
+      };
+    }
+
+    function drawConnections() {
+      const rect = nodesLayer.getBoundingClientRect();
+      connectionsLayer.setAttribute('width', rect.width);
+      connectionsLayer.setAttribute('height', rect.height);
+      connectionsLayer.innerHTML = connections.map((conn, idx) => {
+        const from = getPortCenter(conn.from.split('-')[0], conn.from);
+        const to = getPortCenter(conn.to.split('-')[0], conn.to);
+        const midX = (from.x + to.x) / 2;
+        const d = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
+        const sel = conn === selectedConn ? ' selected' : '';
+        return `<path class="connection-path${sel}" data-idx="${idx}" d="${d}" />`;
+      }).join('');
+      if (selectedConn) {
+        const i = connections.indexOf(selectedConn);
+        if (i >= 0) {
+          const conn = connections[i];
+          const from = getPortCenter(conn.from.split('-')[0], conn.from);
+          const to = getPortCenter(conn.to.split('-')[0], conn.to);
+          let mx = (from.x + to.x) / 2, my = (from.y + to.y) / 2;
+          const pathEl = connectionsLayer.querySelector(`.connection-path[data-idx="${i}"]`);
+          if (pathEl && pathEl.getPointAtLength) {
+            try {
+              const pt = pathEl.getPointAtLength(pathEl.getTotalLength() / 2);
+              mx = pt.x; my = pt.y;
+            } catch (e) {}
+          }
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          g.setAttribute('class', 'conn-delete');
+          g.setAttribute('data-conn', i);
+          g.setAttribute('transform', `translate(${mx}, ${my})`);
+          g.innerHTML = '<circle r="9" fill="#fff" stroke="#FF3B30" stroke-width="1.5"/><path d="M -3.5 -3.5 L 3.5 3.5 M 3.5 -3.5 L -3.5 3.5" stroke="#FF3B30" stroke-width="2" stroke-linecap="round"/>';
+          connectionsLayer.appendChild(g);
+        }
+      }
+    }
+
+    function renderNodes() {
+      nodesLayer.innerHTML = nodes.map(node => {
+        const cfg = TYPE_COLORS[node.type];
+        const isSelected = selectedId === node.id;
+        const inputsHtml = (node.inputs || []).map(p => `
+          <div class="port input" data-port="${p.id}" title="${p.label}"></div>
+          <span class="port-label" style="margin-left:12px">${p.label}</span>
+        `).join('');
+        const outputsHtml = (node.outputs || []).map(p => `
+          <span class="port-label" style="margin-right:12px">${p.label}</span>
+          <div class="port output" data-port="${p.id}" title="${p.label}"></div>
+        `).join('');
+        const bodyContent = node.type === 'input' && node.name === '参考图'
+          ? `<div class="node-thumb">参考图占位</div>`
+          : node.param
+            ? `<div class="node-param">${node.param.replace(/\n/g, '<br>')}</div>`
+            : '<div class="node-param">双击编辑节点参数</div>';
+        return `
+          <div class="node-card ${isSelected ? 'selected' : ''}" id="${node.id}" data-id="${node.id}" style="left:${node.x}px;top:${node.y}px">
+            <div class="node-header">
+              <div class="node-dot" style="background:${cfg.color}"></div>
+              <span class="node-title">${node.name}</span>
+              ${svgIcon(node.type === 'output' ? 'eye' : (node.type === 'image' ? 'wand' : 'text'), 14)}
+              <button class="node-delete" data-del="${node.id}" title="删除节点">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+            <div class="node-body">${bodyContent}</div>
+            <div class="node-footer">
+              <div style="display:flex;align-items:center;position:relative">${inputsHtml}</div>
+              <div style="display:flex;align-items:center;position:relative">${outputsHtml}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Bind events
+      nodesLayer.querySelectorAll('.node-card').forEach(el => {
+        el.addEventListener('mousedown', onNodeMouseDown);
+        el.addEventListener('click', onNodeClick);
+      });
+      nodesLayer.querySelectorAll('.node-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteNode(btn.dataset.del);
+        });
+      });
+      nodesLayer.querySelectorAll('.port').forEach(p => {
+        p.addEventListener('mousedown', onPortMouseDown);
+      });
+
+      drawConnections();
+      renderProperties();
+    }
+
+    function addNode(type, name, clientX, clientY) {
+      const cfg = TYPE_COLORS[type];
+      const id = 'n' + (Date.now());
+      let x, y;
+      if (clientX != null && clientY != null) {
+        const rect = canvas.getBoundingClientRect();
+        x = (clientX - rect.left) / scale;
+        y = (clientY - rect.top) / scale;
+      } else {
+        x = 360 + (nodes.length % 3) * 40;
+        y = 140 + (nodes.length % 4) * 50;
+      }
+      const newNode = {
+        id,
+        type,
+        name,
+        x,
+        y,
+        param: name,
+        inputs: type !== 'input' ? [{ id: id + '-in', label: 'input' }] : undefined,
+        outputs: type !== 'output' ? [{ id: id + '-out', label: 'output' }] : undefined
+      };
+      nodes.push(newNode);
+      selectedId = id;
+      renderNodes();
+    }
+
+    function onNodeMouseDown(e) {
+      if (e.target.classList.contains('port')) return;
+      if (e.target.closest('.node-delete')) return;
+      const card = e.currentTarget;
+      draggedId = card.dataset.id;
+      const node = nodes.find(n => n.id === draggedId);
+      dragOffset.x = e.clientX - node.x;
+      dragOffset.y = e.clientY - node.y;
+      selectedId = draggedId;
+      renderNodes();
+    }
+
+    function onNodeClick(e) {
+      if (e.target.classList.contains('port')) return;
+      if (e.target.closest('.node-delete')) return;
+      selectedId = e.currentTarget.dataset.id;
+      selectedConn = null;
+      renderNodes();
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      if (linking) { onLinkMove(e); return; }
+      if (!draggedId) return;
+      const node = nodes.find(n => n.id === draggedId);
+      if (!node) return;
+      node.x = e.clientX - dragOffset.x;
+      node.y = e.clientY - dragOffset.y;
+      const el = document.getElementById(draggedId);
+      el.style.left = node.x + 'px';
+      el.style.top = node.y + 'px';
+      drawConnections();
+    });
+
+    document.addEventListener('mouseup', (e) => {
+      draggedId = null;
+      if (linking) onLinkUp(e);
+    });
+
+    // Click canvas to deselect
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.target === canvas || e.target.classList.contains('canvas-area')) {
+        selectedId = null;
+        renderNodes();
+      }
+    });
+
+    // Render properties panel
+    function renderProperties() {
+      const title = document.getElementById('propTitle');
+      const sub = document.getElementById('propSub');
+      const body = document.getElementById('propBody');
+      const statusLabel = document.getElementById('selectedNodeLabel');
+
+      if (!selectedId) {
+        title.textContent = '属性';
+        sub.textContent = '选择一个节点查看并编辑参数';
+        body.innerHTML = '<div class="empty-state">点击画布中的节点以编辑参数</div>';
+        statusLabel.textContent = '未选择节点';
+        return;
+      }
+
+      const node = nodes.find(n => n.id === selectedId);
+      title.textContent = node.name;
+      sub.textContent = 'ID: ' + node.id;
+      statusLabel.textContent = `已选择：${node.name}`;
+
+      const cfg = TYPE_COLORS[node.type];
+      let fields = '';
+
+      if (node.type === 'image') {
+        fields = `
+          <div class="prop-group">
+            <div class="prop-label">AI 模型</div>
+            <select class="prop-select"><option>Flux Dev</option><option>Flux Schnell</option><option>SDXL</option><option>Midjourney</option></select>
+          </div>
+          <div class="prop-row">
+            <div class="prop-group">
+              <div class="prop-label">宽度</div>
+              <input class="prop-input" value="1024" />
+            </div>
+            <div class="prop-group">
+              <div class="prop-label">高度</div>
+              <input class="prop-input" value="1024" />
+            </div>
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">采样步数</div>
+            <input class="prop-input" value="28" />
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">提示词</div>
+            <textarea class="prop-textarea">一只宇航员猫在月球上弹吉他，霓虹灯光，科幻风格</textarea>
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">负面提示词</div>
+            <textarea class="prop-textarea">低质量，模糊，水印</textarea>
+          </div>
+          <button class="run-btn">
+            ${svgIcon('output', 14)}
+            运行当前节点
+          </button>
+        `;
+      } else if (node.type === 'input' && node.name === '提示词') {
+        fields = `
+          <div class="prop-group">
+            <div class="prop-label">提示词内容</div>
+            <div class="prop-desc">将作为下游图像/视频/文本生成节点的输入。</div>
+            <textarea class="prop-textarea">一只宇航员猫在月球上弹吉他，霓虹灯光，科幻风格</textarea>
+          </div>
+        `;
+      } else if (node.type === 'input' && node.name === '参考图') {
+        fields = `
+          <div class="prop-group">
+            <div class="prop-label">参考图片</div>
+            <div class="preview-box">点击上传参考图</div>
+          </div>
+        `;
+      } else if (node.type === 'output') {
+        fields = `
+          <div class="prop-group">
+            <div class="prop-label">预览</div>
+            <div class="preview-box">等待上游节点输出结果</div>
+          </div>
+          <div class="prop-group">
+            <div class="prop-label">导出格式</div>
+            <select class="prop-select"><option>PNG</option><option>JPG</option><option>WEBP</option></select>
+          </div>
+        `;
+      } else {
+        fields = `
+          <div class="prop-group">
+            <div class="prop-label">节点说明</div>
+            <div class="prop-desc">${node.name} 节点的参数将在正式集成后端后动态生成。</div>
+            <textarea class="prop-textarea">${node.param || ''}</textarea>
+          </div>
+        `;
+      }
+
+      body.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${cfg.color}"></div>
+          <span style="font-size:13px;font-weight:600">${node.name}</span>
+        </div>
+        ${fields}
+      `;
+    }
+
+    // Zoom controls (mock)
+    let scale = 1;
+    document.getElementById('zoomIn').addEventListener('click', () => {
+      scale = Math.min(scale + 0.1, 1.5);
+      updateCanvasScale();
+    });
+    document.getElementById('zoomOut').addEventListener('click', () => {
+      scale = Math.max(scale - 0.1, 0.6);
+      updateCanvasScale();
+    });
+    document.getElementById('fitCanvas').addEventListener('click', () => {
+      scale = 1;
+      updateCanvasScale();
+    });
+    function updateCanvasScale() {
+      nodesLayer.style.transform = `scale(${scale})`;
+      connectionsLayer.style.transform = `scale(${scale})`;
+      connectionsLayer.style.transformOrigin = '0 0';
+      nodesLayer.style.transformOrigin = '0 0';
+      drawConnections();
+    }
+
+    // Fullscreen toggle
+    document.getElementById('fullscreenBtn').addEventListener('click', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    });
+
+    // Run all animation
+    document.getElementById('runAllBtn').addEventListener('click', () => {
+      const btn = document.getElementById('runAllBtn');
+      const original = btn.innerHTML;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10" opacity=".25"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" fill="none"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg> 运行中`;
+      btn.style.opacity = '0.9';
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.style.opacity = '1';
+      }, 1500);
+    });
+
+    // ---- Settings (模型 / API 设置) ----
+    const settingsModal = document.getElementById('settingsModal');
+    function loadSettings() {
+      try {
+        const s = JSON.parse(localStorage.getItem('ysf_settings') || '{}');
+        document.getElementById('setProvider').value = s.provider || 'openai';
+        document.getElementById('setBaseUrl').value = s.baseUrl || '';
+        document.getElementById('setApiKey').value = s.apiKey || '';
+        document.getElementById('setTextModel').value = s.textModel || '';
+        document.getElementById('setImageModel').value = s.imageModel || '';
+      } catch (e) {}
+    }
+    function openSettings() { loadSettings(); settingsModal.classList.add('open'); }
+    function closeSettings() { settingsModal.classList.remove('open'); }
+    document.getElementById('apiSettingsBtn').addEventListener('click', openSettings);
+    document.getElementById('settingsClose').addEventListener('click', closeSettings);
+    document.getElementById('settingsCancel').addEventListener('click', closeSettings);
+    settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
+    document.getElementById('settingsSave').addEventListener('click', () => {
+      const s = {
+        provider: document.getElementById('setProvider').value,
+        baseUrl: document.getElementById('setBaseUrl').value,
+        apiKey: document.getElementById('setApiKey').value,
+        textModel: document.getElementById('setTextModel').value,
+        imageModel: document.getElementById('setImageModel').value
+      };
+      try { localStorage.setItem('ysf_settings', JSON.stringify(s)); } catch (e) {}
+      closeSettings();
+      const label = document.getElementById('selectedNodeLabel');
+      if (label) label.textContent = 'API 设置已保存';
+    });
+
+    // ---- Delete node ----
+    function deleteNode(id) {
+      nodes = nodes.filter(n => n.id !== id);
+      connections = connections.filter(c => c.from.split('-')[0] !== id && c.to.split('-')[0] !== id);
+      if (selectedId === id) selectedId = null;
+      renderNodes();
+    }
+
+    // ---- Context menu (right-click add / delete node) ----
+    const ctxMenu = document.getElementById('ctxMenu');
+    let lastCtx = { x: 0, y: 0 };
+    function hideCtxMenu() { ctxMenu.style.display = 'none'; }
+    function buildCtxMenu(e) {
+      lastCtx = { x: e.clientX, y: e.clientY };
+      const nodeCard = e.target.closest ? e.target.closest('.node-card') : null;
+      let html = '';
+      if (nodeCard) {
+        html += '<div class="ctx-item ctx-danger" data-del="' + nodeCard.dataset.id + '">删除节点</div>';
+      }
+      html += '<div class="ctx-title">添加节点</div>';
+      nodeLibrary.forEach(cat => {
+        cat.items.forEach(item => {
+          html += '<div class="ctx-item" data-type="' + item.type + '" data-name="' + item.name + '">'
+            + '<span class="node-icon ' + TYPE_COLORS[item.type].cls + '" style="width:18px;height:18px">' + svgIcon(item.icon, 12) + '</span>'
+            + '<span>' + item.name + '</span></div>';
+        });
+      });
+      ctxMenu.innerHTML = html;
+      ctxMenu.style.display = 'block';
+      ctxMenu.style.left = e.clientX + 'px';
+      ctxMenu.style.top = e.clientY + 'px';
+      ctxMenu.querySelectorAll('.ctx-item').forEach(it => {
+        it.addEventListener('click', () => {
+          if (it.dataset.del) deleteNode(it.dataset.del);
+          else addNode(it.dataset.type, it.dataset.name, lastCtx.x, lastCtx.y);
+          hideCtxMenu();
+        });
+      });
+    }
+    canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); buildCtxMenu(e); });
+    document.addEventListener('mousedown', (e) => {
+      if (ctxMenu.style.display === 'block' && !ctxMenu.contains(e.target)) hideCtxMenu();
+    });
+
+    // ---- Port linking (drag to connect) ----
+    let linking = null;
+    let tempPathEl = null;
+    function onPortMouseDown(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      const portEl = e.currentTarget;
+      linking = {
+        fromNode: portEl.dataset.port.split('-')[0],
+        fromPort: portEl.dataset.port,
+        fromIsOutput: portEl.classList.contains('output')
+      };
+      tempPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      tempPathEl.setAttribute('class', 'connection-temp');
+      tempPathEl.setAttribute('stroke', '#007AFF');
+      connectionsLayer.appendChild(tempPathEl);
+    }
+    function onLinkMove(e) {
+      if (!linking) return;
+      const rect = nodesLayer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const start = getPortCenter(linking.fromNode, linking.fromPort);
+      const midX = (start.x + x) / 2;
+      tempPathEl.setAttribute('d', 'M ' + start.x + ' ' + start.y + ' C ' + midX + ' ' + start.y + ', ' + midX + ' ' + y + ', ' + x + ' ' + y);
+    }
+    function onLinkUp(e) {
+      if (!linking) return;
+      const targetPort = e.target && e.target.closest ? e.target.closest('.port') : null;
+      if (targetPort) {
+        const tIsOutput = targetPort.classList.contains('output');
+        const tPortId = targetPort.dataset.port;
+        const tNode = tPortId.split('-')[0];
+        if (tIsOutput !== linking.fromIsOutput && tNode !== linking.fromNode) {
+          const fromP = linking.fromIsOutput ? linking.fromPort : tPortId;
+          const toP = linking.fromIsOutput ? tPortId : linking.fromPort;
+          if (!connections.some(c => c.from === fromP && c.to === toP)) {
+            connections.push({ from: fromP, to: toP });
+          }
+        }
+      }
+      if (tempPathEl && tempPathEl.parentNode) tempPathEl.parentNode.removeChild(tempPathEl);
+      tempPathEl = null;
+      linking = null;
+      renderNodes();
+    }
+
+    // ---- Connection selection / deletion ----
+    let selectedConn = null;
+    connectionsLayer.addEventListener('click', (e) => {
+      const del = e.target.closest('.conn-delete');
+      if (del) {
+        const i = parseInt(del.getAttribute('data-conn'), 10);
+        if (i >= 0 && i < connections.length) {
+          connections.splice(i, 1);
+          selectedConn = null;
+          drawConnections();
+          renderProperties();
+        }
+        return;
+      }
+      const path = e.target.closest('.connection-path');
+      if (path && path.dataset.idx !== undefined) {
+        const i = parseInt(path.dataset.idx, 10);
+        if (i >= 0 && i < connections.length) {
+          selectedConn = connections[i];
+          selectedId = null;
+          drawConnections();
+          renderProperties();
+        }
+        return;
+      }
+    });
+    canvas.addEventListener('click', (e) => {
+      if (e.target === nodesLayer || e.target === canvas) {
+        if (selectedId || selectedConn) {
+          selectedId = null;
+          selectedConn = null;
+          renderNodes();
+        }
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      const t = e.target && e.target.tagName;
+      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedConn) {
+        const i = connections.indexOf(selectedConn);
+        if (i >= 0) connections.splice(i, 1);
+        selectedConn = null;
+        renderNodes();
+      }
+    });
+
+    // Initial render
+    renderNodes();
+
+    // Redraw connections on resize
+    window.addEventListener('resize', drawConnections);
+  </script>
+</body>
+</html>

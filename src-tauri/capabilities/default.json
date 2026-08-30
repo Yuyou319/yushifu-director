@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "于师傅画布 默认权限：允许核心能力与 HTTP 请求（用于直连用户配置的模型 API）",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "http:default"
+  ]
+}
