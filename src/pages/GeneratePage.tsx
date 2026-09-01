@@ -43,9 +43,18 @@ const SAMPLES: Record<string, string[]> = {
 };
 
 export default function GeneratePage({ groupId }: { groupId: string }) {
-  const group = GROUP_MAP[groupId];
+  const group = GROUP_MAP[groupId] ?? Object.values(GROUP_MAP)[0];
   const [modeId, setModeId] = useState(group.modes[0].id);
-  const mode = useMemo(() => group.modes.find((m) => m.id === modeId)!, [group, modeId]);
+
+  /* 切换功能组时重置子模式，避免残留上一个组的 modeId */
+  useEffect(() => {
+    setModeId(group.modes[0].id);
+  }, [group]);
+
+  const mode = useMemo(
+    () => group.modes.find((m) => m.id === modeId) ?? group.modes[0],
+    [group, modeId]
+  );
 
   /* 首页快捷入口跳转定位 */
   const focus = useApp((s) => s.focus);

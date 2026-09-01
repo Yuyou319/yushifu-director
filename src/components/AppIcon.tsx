@@ -39,6 +39,7 @@ const ICONS: Record<string, React.ElementType<{ className?: string; size?: numbe
   assets: Package,
   projects: Folder,
   settings: Settings,
+  character: Users,
 
   // 导演流程
   idea: Lightbulb,

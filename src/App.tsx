@@ -47,6 +47,8 @@ const TOOLS: ToolItem[] = [
   { id: 'image', name: '生图', icon: '🎨', section: '创作工具' },
   { id: 'video', name: '生视频', icon: '🎬', section: '创作工具' },
   { id: 'audio', name: '生音频', icon: '🔊', section: '创作工具' },
+  { id: 'script', name: '剧本 / 分镜', icon: '📜', section: '创作工具' },
+  { id: 'character', name: '角色一致性', icon: '👤', section: '创作工具' },
   { id: 'imgtools', name: '图像工具', icon: '🛠️', section: '创作工具' },
   { id: 'vidtools', name: '视频工具', icon: '🎛️', section: '创作工具' },
   { id: 'canvas', name: '无限画布', icon: '🕸️', section: '编排' },
@@ -102,7 +104,7 @@ export default function App() {
     if (id === 'assets') return <AssetsPage />;
     if (id === 'projects') return <ProjectsPage />;
     if (id === 'settings') return <SettingsPage />;
-    if (GROUPS.some((g) => g.id === id)) return <GeneratePage groupId={id} />;
+    if (GROUPS.some((g) => g.id === id)) return <GeneratePage key={id} groupId={id} />;
     return <HomePage />;
   };
 
