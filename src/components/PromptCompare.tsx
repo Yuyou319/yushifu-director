@@ -1,3 +1,5 @@
+import { copyText } from '../lib/clipboard';
+
 export default function PromptCompare({
   original,
   master,
@@ -9,7 +11,9 @@ export default function PromptCompare({
   diff: string[];
   masterName: string;
 }) {
-  const copy = (t: string) => navigator.clipboard?.writeText(t);
+  const copy = (t: string) => {
+    void copyText(t);
+  };
   return (
     <div className="cmp">
       <div className="cmp-cols">

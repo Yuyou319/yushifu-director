@@ -7,6 +7,7 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Connection,
+  Edge,
   Node,
   NodeTypes,
   ReactFlowInstance
@@ -21,16 +22,60 @@ import Palette, { KIND_GROUPS } from '../Palette';
 import { runGraph } from '../run';
 import { TEMPLATES, instantiate } from '../templates';
 import { saveProject, loadProject, exportJson } from '../storage';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const nodeTypes: NodeTypes = { custom: NodeCard as any };
 
 let seq = 1;
 const uid = () => `n${Date.now()}_${seq++}`;
 
+/**
+ * 清洗从 localStorage 读回的画布数据：
+ * 丢掉 position 为 NaN / 缺失 data 的坏节点，以及指向不存在节点的连线，
+ * 避免脏数据让 React Flow 渲染崩溃（整页黑屏）。
+ */
+function sanitizeNodes(list: unknown): Node<NodeData>[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((n: any) => {
+      const p = n?.position;
+      return (
+        n &&
+        typeof n.id === 'string' &&
+        p &&
+        Number.isFinite(Number(p.x)) &&
+        Number.isFinite(Number(p.y)) &&
+        n.data &&
+        typeof n.data === 'object'
+      );
+    })
+    .map((n: any) => ({
+      ...n,
+      type: 'custom',
+      position: { x: Number(n.position.x) || 0, y: Number(n.position.y) || 0 },
+      data: {
+        kind: n.data.kind,
+        label: n.data.label ?? '',
+        prompt: n.data.prompt ?? '',
+        model: n.data.model ?? '',
+        params: n.data.params ?? {},
+        status: n.data.status ?? 'idle'
+      }
+    }));
+}
+
+function sanitizeEdges(list: unknown, nodeIds: Set<string>): Edge[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter(
+    (e: any) => e && typeof e.id === 'string' && nodeIds.has(e.source) && nodeIds.has(e.target)
+  );
+}
+
 export default function CanvasPage() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [running, setRunning] = useState(false);
+  const [runErr, setRunErr] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [fileInput, setFileInput] = useState<HTMLInputElement | null>(null);
   const settings = useSettings((s) => s.settings);
@@ -98,8 +143,16 @@ export default function CanvasPage() {
 
   const run = useCallback(async () => {
     setRunning(true);
-    await runGraph(nodes, edges, settings, updateNode);
-    setRunning(false);
+    setRunErr('');
+    try {
+      await runGraph(nodes, edges, settings, updateNode);
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      console.error('运行失败', e);
+      setRunErr(msg);
+    } finally {
+      setRunning(false);
+    }
   }, [nodes, edges, settings, updateNode]);
 
   const doSave = useCallback(() => {
@@ -113,8 +166,10 @@ export default function CanvasPage() {
       alert('没有找到已保存的工程');
       return;
     }
-    setNodes(p.nodes);
-    setEdges(p.edges);
+    const nds = sanitizeNodes(p.nodes);
+    const ids = new Set(nds.map((n) => n.id));
+    setNodes(nds);
+    setEdges(sanitizeEdges(p.edges, ids));
     if (p.settings) setSettings(p.settings);
   }, [setNodes, setEdges, setSettings]);
 
@@ -144,8 +199,10 @@ export default function CanvasPage() {
   useEffect(() => {
     const p = loadProject();
     if (p) {
-      setNodes(p.nodes);
-      setEdges(p.edges);
+      const nds = sanitizeNodes(p.nodes);
+      const ids = new Set(nds.map((n) => n.id));
+      setNodes(nds);
+      setEdges(sanitizeEdges(p.edges, ids));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -172,29 +229,54 @@ export default function CanvasPage() {
           <button className="primary" disabled={running} onClick={run}>
             {running ? '运行中…' : '▶ 运行'}
           </button>
+          {runErr && <span className="canvas-err">运行失败：{runErr}</span>}
           <span className="canvas-tip">右键画布添加节点 · 双击节点编辑 · 连线表示数据流向</span>
         </div>
         <div className="canvas-body">
           <Palette onAdd={addNode} onLoadTemplate={loadTemplate} templates={TEMPLATES} />
           <div className="canvas">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={(_, n) => setSelected(n.id)}
-              onPaneClick={() => setMenu(null)}
-              onPaneContextMenu={onPaneContextMenu}
-              onInit={setRf}
-              zoomOnDoubleClick={false}
-              fitView
+            <ErrorBoundary
+              label="画布"
+              fallback={
+                <div className="err-fallback">
+                  <h3>画布渲染出错</h3>
+                  <p className="err-msg">已阻止整页黑屏。可重新加载，或重置画布（会清空本机保存的节点数据）。</p>
+                  <div className="row-gap">
+                    <button className="primary" onClick={() => location.reload()}>
+                      重新加载
+                    </button>
+                    <button
+                      className="mini danger-text"
+                      onClick={() => {
+                        localStorage.removeItem('libtv-local-project');
+                        location.reload();
+                      }}
+                    >
+                      重置画布
+                    </button>
+                  </div>
+                </div>
+              }
             >
-              <Background color="#d1d1d6" gap={24} size={1} />
-              <Controls />
-              <MiniMap />
-            </ReactFlow>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onNodeClick={(_, n) => setSelected(n.id)}
+                onPaneClick={() => setMenu(null)}
+                onPaneContextMenu={onPaneContextMenu}
+                onInit={setRf}
+                zoomOnDoubleClick={false}
+                fitView
+              >
+                <Background color="#d1d1d6" gap={24} size={1} />
+                <Controls />
+                <MiniMap />
+              </ReactFlow>
+            </ErrorBoundary>
             {menu && (
               <div className="ctx-menu" style={{ left: menu.x, top: menu.y }} onContextMenu={(e) => e.preventDefault()}>
                 <div className="ctx-title">添加节点</div>

@@ -17,8 +17,8 @@ export default function NodeCard({ id, data }: { id: string; data: NodeData }) {
   const update = useUpdateNode();
   const rf = useReactFlow();
   const settings = useSettings((s) => s.settings);
-  const isGen = data.kind !== 'prompt' && data.kind !== 'output' && data.kind !== 'refimg';
-  const cfg = isGen ? settings[MODALITY_OF[data.kind]] : null;
+  const isGen = !!data?.kind && data.kind !== 'prompt' && data.kind !== 'output' && data.kind !== 'refimg';
+  const cfg = isGen ? (settings[MODALITY_OF[data.kind]] ?? null) : null;
   const models = cfg?.models ?? [];
   const modelValue = data.model || cfg?.defaultModel || '';
 
@@ -30,7 +30,7 @@ export default function NodeCard({ id, data }: { id: string; data: NodeData }) {
     <div className="node-card">
       <Handle type="target" position={Position.Top} />
       <div className="node-head">
-        <span className="node-title">{KIND_LABELS[data.kind]}</span>
+        <span className="node-title">{KIND_LABELS[data.kind] ?? '节点'}</span>
         <div className="node-head-right">
           <span className={`status-dot status-${data.status ?? 'idle'}`} title={data.status} />
           <button className="node-del" title="删除节点" onClick={onDelete}>×</button>

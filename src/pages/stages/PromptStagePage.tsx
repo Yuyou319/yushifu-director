@@ -3,6 +3,7 @@ import { useApp } from '../../store';
 import { buildPair } from '../../lib/director';
 import { VIDEO_MODEL_NAMES, findVideoModel } from '../../data/videomodels';
 import PromptCompare from '../../components/PromptCompare';
+import { copyText } from '../../lib/clipboard';
 import { PromptItem } from '../../types';
 
 export default function PromptStagePage() {
@@ -40,7 +41,7 @@ export default function PromptStagePage() {
     const text = pairs
       .map((x) => `【镜 ${x.shot.no}】\nOriginal: ${x.original}\n${x.master ? `Master: ${x.master}\n` : ''}`)
       .join('\n\n');
-    navigator.clipboard?.writeText(text);
+    void copyText(text);
   };
 
   return (
@@ -142,7 +143,12 @@ export default function PromptStagePage() {
                 <div key={x.shot.id} className="prompt-item">
                   <b>镜 {x.shot.no}</b>
                   <pre>{x.master || x.original}</pre>
-                  <button className="mini" onClick={() => navigator.clipboard?.writeText(x.master || x.original)}>
+                  <button
+                    className="mini"
+                    onClick={() => {
+                      void copyText(x.master || x.original);
+                    }}
+                  >
                     复制
                   </button>
                 </div>
