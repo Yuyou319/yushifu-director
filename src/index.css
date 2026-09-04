@@ -1,5 +1,5 @@
 /* =========================================================================
- *  Design System：Apple 风（对齐 于师傅画布-Apple风界面.html）
+ *  Design System：Apple 风（对齐 于师傅的导演台-Apple风界面.html）
  *  #F5F5F7 底 · #FFFFFF 面 · #007AFF 强调 · 32px 控件 · 多层柔和阴影 · 毛玻璃
  * ========================================================================= */
 :root {
@@ -223,7 +223,7 @@ button.danger:hover { background: rgba(255, 59, 48, 0.2); }
 .setting-group label { display: block; font-size: 12px; color: var(--text-2); margin: 10px 0 4px; }
 .settings-note { font-size: 11px; color: var(--text-3); margin-top: 12px; line-height: 1.6; }
 .test-btn { padding: 5px 12px; font-size: 12px; }
-.test-result { font-size: 11px; color: var(--text-2); line-height: 1.4; }
+.test-result { display: block; width: 100%; margin-top: 8px; padding: 6px 8px; border-radius: 6px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,.04); color: var(--text-2); }
 .x { padding: 2px 9px; font-size: 14px; line-height: 1; }
 
 /* ---------- Inputs ---------- */
@@ -658,6 +658,8 @@ textarea.inp { resize: vertical; line-height: 1.6; }
 .task.done .task-fill { background: var(--green); }
 .task.error .task-fill { background: var(--red); }
 .task-err { font-size: 11px; color: var(--red); margin-top: 5px; line-height: 1.5; }
+.task-refresh { margin-top: 6px; align-self: flex-start; font-size: 11px; padding: 3px 10px; border-radius: 980px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.task-refresh:hover { background: var(--accent); color: #fff; }
 .dot-run { font-size: 11px; color: var(--accent); }
 
 /* -------------------------------- 结果 -------------------------------- */
@@ -669,6 +671,9 @@ textarea.inp { resize: vertical; line-height: 1.6; }
 .av-badge { position: absolute; left: 6px; bottom: 6px; font-size: 10px; background: rgba(0,0,0,.5); color: #fff; padding: 2px 7px; border-radius: 980px; }
 .av-audio { padding: 12px 10px; width: 100%; }
 .av-text { margin: 0; padding: 10px; font-size: 11px; line-height: 1.6; white-space: pre-wrap; max-height: 200px; overflow: auto; color: var(--text-2); }
+.av-broken { padding: 12px; font-size: 11px; color: var(--text-2); text-align: center; }
+.av-broken pre { background: var(--bg); border-radius: 6px; padding: 8px; margin: 8px 0; text-align: left; word-break: break-all; color: var(--text-3); max-height: 120px; overflow: auto; }
+.av-broken-ops { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
 .acard-bar { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--border); }
 .acard-title { font-size: 11px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acard-ops { display: flex; gap: 4px; flex: none; }

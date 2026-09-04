@@ -1,7 +1,9 @@
 import { Asset } from '../types';
+import { useState } from 'react';
 
 export function AssetView({ asset, maxHeight = 320 }: { asset: Asset; maxHeight?: number }) {
-  if (asset.type === 'image') return <img className="av-img" src={asset.url} alt={asset.title} style={{ maxHeight }} />;
+  if (asset.type === 'image')
+    return <SafeImage className="av-img" src={asset.url} alt={asset.title} style={{ maxHeight }} />;
   if (asset.type === 'video') {
     const isPoster = asset.url.startsWith('data:image');
     return isPoster ? (
@@ -76,4 +78,38 @@ export function AssetGrid({
       ))}
     </div>
   );
+}
+
+function SafeImage({
+  src,
+  alt,
+  className,
+  style
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const [bad, setBad] = useState(false);
+  if (!src) {
+    return <div className="av-broken">无图片地址</div>;
+  }
+  if (bad) {
+    return (
+      <div className="av-broken">
+        <div>图片加载失败</div>
+        <pre title={src}>{src.length > 120 ? src.slice(0, 120) + '…' : src}</pre>
+        <div className="av-broken-ops">
+          <button className="mini" onClick={() => navigator.clipboard.writeText(src)}>
+            复制地址
+          </button>
+          <button className="mini" onClick={() => window.open(src, '_blank')}>
+            新标签打开
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return <img className={className} src={src} alt={alt} style={style} onError={() => setBad(true)} />;
 }

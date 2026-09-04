@@ -113,7 +113,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-logo"><AppIcon id="brand" /></span>
-          <span>于师傅画布</span>
+          <span>于师傅的导演台</span>
           {routeName && <span className="brand-sub">/ {routeName}</span>}
         </div>
 

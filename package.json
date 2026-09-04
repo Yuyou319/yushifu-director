@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "于师傅画布 - 节点式多模态创作工作台 (BYOK)",
+  "description": "于师傅的导演台 - 节点式多模态创作工作台 (BYOK)",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

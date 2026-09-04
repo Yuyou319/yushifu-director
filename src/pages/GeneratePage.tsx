@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { GROUP_MAP } from '../data/modes';
 import { useApp } from '../store';
 import { defaultValues, FieldRenderer, Section } from '../lib/ui';
-import { submitTask, validate } from '../lib/engine';
+import { submitTask, validate, refreshTask } from '../lib/engine';
 import { AssetGrid, AssetView } from '../components/Preview';
 import { ModeSpec, Asset } from '../types';
 import SubjectBar from '../components/SubjectBar';
@@ -276,13 +276,26 @@ export default function GeneratePage({ groupId }: { groupId: string }) {
               <div className="task-top">
                 <span className="task-name">{t.modeName}</span>
                 <span className="task-st">
-                  {t.status === 'running' ? `${Math.round(t.progress)}%` : t.status === 'done' ? '完成' : t.status === 'error' ? '失败' : '排队'}
+                  {t.status === 'running'
+                    ? t.agnesTaskId
+                      ? '等待生成'
+                      : `${Math.round(t.progress)}%`
+                    : t.status === 'done'
+                    ? '完成'
+                    : t.status === 'error'
+                    ? '失败'
+                    : '排队'}
                 </span>
               </div>
               <div className="task-bar">
                 <div className="task-fill" style={{ width: `${t.progress}%` }} />
               </div>
               {t.error && <div className="task-err">{t.error}</div>}
+              {t.agnesTaskId && t.status !== 'done' && (
+                <button className="task-refresh" onClick={() => refreshTask(t.id)}>
+                  刷新状态
+                </button>
+              )}
             </div>
           ))}
         </div>

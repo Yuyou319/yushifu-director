@@ -35,7 +35,35 @@ export type NodeKind =
   | 'caption'
   | 'inpaint'
   | 'music'
-  | 'lipsync';
+  | 'lipsync'
+  // 新增：补齐与外部页面一致的功能
+  | 'outpaint'
+  | 'multiangle'
+  | 'relight'
+  | 'turnaround'
+  | 'storygrid'
+  | 'multiref'
+  | 'firstlast'
+  | 'extend'
+  | 'tts'
+  | 'clone'
+  | 'sfx'
+  | 'script'
+  | 'shots'
+  | 'director'
+  | 'stylelock'
+  | 'consistency'
+  | 'erase'
+  | 'gridsplit'
+  | 'crop'
+  | 'vupscale'
+  | 'fps'
+  | 'shotsplit'
+  | 'trim'
+  | 'toaudio'
+  | 'dub'
+  | 'subtitle'
+  | 'compose';
 
 export interface NodeData {
   kind: NodeKind;
@@ -58,16 +86,45 @@ export const MODALITY_OF: Record<string, Modality> = {
   storyboard: 'text',
   rewrite: 'text',
   translate: 'text',
+  caption: 'text',
+  script: 'text',
+  shots: 'text',
+  director: 'text',
   image: 'image',
   image2img: 'image',
   upscale: 'image',
   bgremove: 'image',
   inpaint: 'image',
+  outpaint: 'image',
+  multiangle: 'image',
+  relight: 'image',
+  turnaround: 'image',
+  storygrid: 'image',
+  erase: 'image',
+  gridsplit: 'image',
+  crop: 'image',
+  stylelock: 'image',
+  consistency: 'image',
   video: 'video',
   lipsync: 'video',
   image2video: 'video',
+  video2video: 'video',
+  multiref: 'video',
+  firstlast: 'video',
+  extend: 'video',
+  vupscale: 'video',
+  fps: 'video',
+  shotsplit: 'video',
+  trim: 'video',
+  dub: 'video',
+  subtitle: 'video',
+  compose: 'video',
   audio: 'audio',
-  music: 'audio'
+  music: 'audio',
+  tts: 'audio',
+  clone: 'audio',
+  sfx: 'audio',
+  toaudio: 'audio'
 };
 
 /* =========================================================================
@@ -108,6 +165,11 @@ export interface Task {
   error?: string;
   assetId?: string;
   prompt?: string;
+  /** Agnes 异步视频/音频任务 ID，提交后等待用户手动刷新 */
+  agnesTaskId?: string;
+  agnesKind?: 'video' | 'audio';
+  /** Agnes 任务最近一次查询到的原始状态（queued/running/completed/failed 等） */
+  agnesStatus?: string;
 }
 
 export interface RefItem {
@@ -244,7 +306,35 @@ export const KIND_LABELS: Record<NodeKind, string> = {
   caption: '图生文',
   inpaint: '局部重绘',
   music: '音乐生成',
-  lipsync: '对口型'
+  lipsync: '对口型',
+  // 新增节点类型
+  outpaint: '画面扩展',
+  multiangle: '多角度生成',
+  relight: '智能打光',
+  turnaround: '角色三视图',
+  storygrid: '宫格分镜',
+  multiref: '多参生视频',
+  firstlast: '首尾帧生视频',
+  extend: '视频续写延长',
+  tts: '文本配音',
+  clone: '声音克隆',
+  sfx: '音效生成',
+  script: 'AI 剧本',
+  shots: '分镜生成',
+  director: '导演台 · 机位参数',
+  stylelock: '风格锁定',
+  consistency: '一致性多图',
+  erase: '智能擦除',
+  gridsplit: '宫格切分',
+  crop: '裁剪',
+  vupscale: '视频高清放大',
+  fps: '帧率提升',
+  shotsplit: '视频分镜解析',
+  trim: '基础剪辑',
+  toaudio: '视频转音频',
+  dub: '视频配音',
+  subtitle: '字幕烧录',
+  compose: '合成导出'
 };
 
 /* =========================================================================

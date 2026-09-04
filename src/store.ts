@@ -21,30 +21,30 @@ const DEFAULT_SETTINGS: Settings = {
   text: {
     baseUrl: 'https://api.openai.com/v1',
     apiKey: '',
-    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1', 'deepseek-chat', 'qwen-plus'],
+    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1', 'deepseek-chat', 'qwen-plus', 'agnes-2.5-flash'],
     defaultModel: 'gpt-4o-mini',
     endpointPath: ''
   },
   image: {
     baseUrl: 'https://api.openai.com/v1',
     apiKey: '',
-    models: ['dall-e-3', 'gpt-image-1', 'kolors', 'flux.1-dev', 'midjourney'],
+    models: ['dall-e-3', 'gpt-image-1', 'kolors', 'flux.1-dev', 'midjourney', 'agnes-image-2.1-flash', 'agnes-image-2.5-flash', 'agnes-image-2.0-flash'],
     defaultModel: 'dall-e-3',
     endpointPath: ''
   },
   video: {
     baseUrl: '',
     apiKey: '',
-    models: ['sora-2', 'kling-v1.6', 'hailuo-02', 'wan-2.2', 'seedance-1.0', 'vidu-q2', 'runway-gen4'],
+    models: ['sora-2', 'kling-v1.6', 'hailuo-02', 'wan-2.2', 'seedance-1.0', 'vidu-q2', 'runway-gen4', 'agnes-video-v2.0', 'agnes-video-2.5-flash'],
     defaultModel: 'kling-v1.6',
-    endpointPath: '/v1/videos/generations'
+    endpointPath: '/videos/generations'
   },
   audio: {
     baseUrl: '',
     apiKey: '',
     models: ['tts-1', 'tts-1-hd', 'fish-speech', 'gpt-sovits', 'suno-v4', 'mureka-v6'],
     defaultModel: 'tts-1',
-    endpointPath: '/v1/audio/generations'
+    endpointPath: '/audio/generations'
   }
 };
 
@@ -64,6 +64,34 @@ function writeJSON(key: string, value: unknown): void {
   } catch {
     /* 忽略：超出配额等情况 */
   }
+}
+
+/** 修正旧版本保存的 endpointPath 和 Agnes 国内默认图模型 */
+function normalizeSettings(s: Settings): Settings {
+  const fix = (cfg: EndpointConfig): EndpointConfig => {
+    let endpointPath = cfg.endpointPath;
+    const base = cfg.baseUrl.replace(/\/$/, '');
+    if (endpointPath && base.endsWith('/v1') && endpointPath.startsWith('/v1/')) {
+      endpointPath = endpointPath.slice(3);
+    }
+    // Agnes 国内站视频/音频不是 OpenAI 兼容路径，清空让 api.ts 走专用路径
+    if (base.includes('agnes-ai.cn')) {
+      if (endpointPath && (endpointPath.includes('/videos/generations') || endpointPath.includes('/audio/generations'))) {
+        endpointPath = '';
+      }
+    }
+    let defaultModel = cfg.defaultModel;
+    if (base.includes('agnes-ai.cn') && defaultModel === 'agnes-image-2.0-flash') {
+      defaultModel = 'agnes-image-2.1-flash';
+    }
+    return { ...cfg, endpointPath, defaultModel };
+  };
+  return {
+    text: fix(s.text),
+    image: fix(s.image),
+    video: fix(s.video),
+    audio: fix(s.audio)
+  };
 }
 
 /* --------------------------------- Store --------------------------------- */
@@ -223,9 +251,10 @@ export const useApp = create<State>((set, get) => ({
     s.updateProject({ params });
   },
 
-  settings: readJSON<Settings>('libtv_settings', DEFAULT_SETTINGS),
+  settings: normalizeSettings(readJSON<Settings>('libtv_settings', DEFAULT_SETTINGS)),
   setEndpoint: (m, patch) => {
-    const next: Settings = { ...get().settings, [m]: { ...get().settings[m], ...patch } };
+    const nextRaw: Settings = { ...get().settings, [m]: { ...get().settings[m], ...patch } };
+    const next = normalizeSettings(nextRaw);
     writeJSON('libtv_settings', next);
     set({ settings: next });
   },

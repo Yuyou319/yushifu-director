@@ -11,13 +11,20 @@ const MODALITIES: { key: Modality; label: string; hint: string }[] = [
   { key: 'audio', label: '生音频', hint: '配音、克隆、音乐、音效' }
 ];
 
-const PRESETS: { name: string; patch: Partial<EndpointConfig>; models: string[] }[] = [
-  { name: 'OpenAI 兼容', patch: { baseUrl: 'https://api.openai.com/v1', endpointPath: '' }, models: ['gpt-4o-mini', 'dall-e-3', 'tts-1'] },
-  { name: 'DeepSeek', patch: { baseUrl: 'https://api.deepseek.com/v1', endpointPath: '' }, models: ['deepseek-chat', 'deepseek-reasoner'] },
-  { name: '通义千问', patch: { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', endpointPath: '' }, models: ['qwen-plus', 'qwen-turbo', 'wanx-v1'] },
-  { name: '智谱 GLM', patch: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', endpointPath: '' }, models: ['glm-4-flash', 'cogview-4'] },
-  { name: '硅基流动', patch: { baseUrl: 'https://api.siliconflow.cn/v1', endpointPath: '' }, models: ['Qwen/Qwen2.5-7B-Instruct', 'black-forest-labs/FLUX.1-dev'] },
-  { name: '火山方舟', patch: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', endpointPath: '' }, models: ['doubao-pro-32k', 'doubao-seedream-3.0'] }
+const PRESETS: { name: string; patch: Partial<EndpointConfig>; models: Partial<Record<Modality, string[]>> }[] = [
+  { name: 'OpenAI 兼容', patch: { baseUrl: 'https://api.openai.com/v1', endpointPath: '' }, models: { text: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1'], image: ['dall-e-3', 'gpt-image-1'], video: ['sora-2'], audio: ['tts-1', 'tts-1-hd'] } },
+  { name: 'DeepSeek', patch: { baseUrl: 'https://api.deepseek.com/v1', endpointPath: '' }, models: { text: ['deepseek-chat', 'deepseek-reasoner'] } },
+  { name: '通义千问', patch: { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', endpointPath: '' }, models: { text: ['qwen-plus', 'qwen-turbo'], image: ['wanx-v1'] } },
+  { name: '智谱 GLM', patch: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', endpointPath: '' }, models: { text: ['glm-4-flash'], image: ['cogview-4'] } },
+  { name: '硅基流动', patch: { baseUrl: 'https://api.siliconflow.cn/v1', endpointPath: '' }, models: { text: ['Qwen/Qwen2.5-7B-Instruct'], image: ['black-forest-labs/FLUX.1-dev'] } },
+  { name: '火山方舟', patch: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', endpointPath: '' }, models: { text: ['doubao-pro-32k'], image: ['doubao-seedream-3.0'] } },
+  { name: 'Agnes AI 免费（国际）', patch: { baseUrl: 'https://apihub.agnes-ai.com/v1', endpointPath: '' }, models: { text: ['agnes-2.5-flash'], image: ['agnes-image-2.1-flash', 'agnes-image-2.5-flash', 'agnes-image-2.0-flash'], video: ['agnes-video-v2.0', 'agnes-video-2.5-flash'] } },
+  { name: 'Agnes AI 免费（国内）', patch: { baseUrl: 'https://api.agnes-ai.cn/v1', endpointPath: '' }, models: { text: ['agnes-2.5-flash'], image: ['agnes-image-2.1-flash', 'agnes-image-2.5-flash'], video: ['agnes-video-v2.0', 'agnes-video-2.5-flash'] } },
+  { name: '本地·Ollama', patch: { baseUrl: 'http://localhost:11434/v1', endpointPath: '' }, models: {} },
+  { name: '本地·vLLM', patch: { baseUrl: 'http://localhost:8000/v1', endpointPath: '' }, models: {} },
+  { name: '本地·LocalAI', patch: { baseUrl: 'http://localhost:8080/v1', endpointPath: '' }, models: {} },
+  { name: '本地·LM Studio', patch: { baseUrl: 'http://localhost:1234/v1', endpointPath: '' }, models: {} },
+  { name: '本地·自建网关', patch: { baseUrl: 'http://localhost:8000/v1', endpointPath: '' }, models: {} }
 ];
 
 export default function SettingsPage() {
@@ -34,9 +41,10 @@ export default function SettingsPage() {
     setBusy((b) => ({ ...b, [key]: true }));
     setTest((t) => ({ ...t, [key]: '测试中…' }));
     try {
-      const out = await callNode(key as NodeKind, settings[key], settings[key].defaultModel, '测试连接', {});
+      const out = await callNode(key as NodeKind, settings[key], settings[key].defaultModel, '测试连接', {}, { test: true });
       setTest((t) => ({ ...t, [key]: '✅ 成功：' + String(out).slice(0, 80) }));
     } catch (e: any) {
+      console.error('[testConn]', key, e);
       setTest((t) => ({ ...t, [key]: '❌ ' + (e?.message || e) }));
     } finally {
       setBusy((b) => ({ ...b, [key]: false }));
@@ -46,6 +54,21 @@ export default function SettingsPage() {
   return (
     <div className="settings-page">
       <h2>⚙ 设置</h2>
+
+      <div className="card">
+        <div className="card-head">
+          <h3>本地算力 / 私域服务器</h3>
+          <span className="hint">对接你自己部署的 OpenAI 兼容服务</span>
+        </div>
+        <div className="home-note">
+          可对接本机或局域网内自建的 <b>OpenAI 兼容</b> 服务（vLLM、Ollama、LocalAI、LM Studio、自建网关等）。
+          直接填 <b>Base URL</b>（如 <code>http://localhost:8000/v1</code> 或 <code>http://192.168.x.x:8080/v1</code>），
+          多数本地服务 <b>无需 API Key</b>（留空即可，已自动处理不发送鉴权头）。
+          生视频/生音频若服务走 OpenAI 兼容路径（<code>/videos/generations</code>、<code>/audio/generations</code>）直接可用；
+          否则在对应能力里填「接口路径」。
+          下方每个能力都有「本地·xxx」一键预设，点一下填入常见本地地址，再改成你的实际地址并填写模型名即可。
+        </div>
+      </div>
 
       <div className="card">
         <div className="card-head">
@@ -87,7 +110,7 @@ export default function SettingsPage() {
                     接口路径（非 OpenAI 兼容时填）
                     <input
                       value={cfg.endpointPath}
-                      placeholder={key === 'video' ? '/v1/videos/generations' : '/v1/audio/generations'}
+                      placeholder={key === 'video' ? '/videos（Agnes）或 /videos/generations' : '/audio/generations'}
                       onChange={(e) => setEndpoint(key, { endpointPath: e.target.value })}
                     />
                   </label>
@@ -102,7 +125,14 @@ export default function SettingsPage() {
                     <button
                       key={p.name}
                       className="mini"
-                      onClick={() => setEndpoint(key, { ...p.patch, models: Array.from(new Set([...cfg.models, ...p.models])) })}
+                      onClick={() => {
+                        const pm = p.models[key] || [];
+                        setEndpoint(key, {
+                          ...p.patch,
+                          models: Array.from(new Set([...cfg.models, ...pm])),
+                          ...(pm[0] ? { defaultModel: pm[0] } : {})
+                        });
+                      }}
                     >
                       {p.name}
                     </button>

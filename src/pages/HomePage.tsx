@@ -44,7 +44,7 @@ export default function HomePage() {
     <div className="home">
       <div className="hero">
         <div>
-          <h1>于师傅画布</h1>
+          <h1>于师傅的导演台</h1>
           <p>AI 导演工作台 · 9 步导演流程 + 45 项创作功能 · 自带 API（BYOK）· 数据不出本机</p>
           <div className="row-gap" style={{ marginTop: 10 }}>
             <button className="primary" onClick={() => setRoute({ kind: 'stage', id: 'idea' })}>

@@ -10,6 +10,17 @@ const MODALITIES: { key: Modality; label: string }[] = [
   { key: 'audio', label: '生音频' }
 ];
 
+/** 一键填入 Agnes AI 免费模型（Base URL + 模型列表 + 默认模型） */
+const AGNES: Partial<Record<Modality, { models: string[]; defaultModel: string }>> = {
+  text: { models: ['agnes-2.5-flash'], defaultModel: 'agnes-2.5-flash' },
+  image: { models: ['agnes-image-2.1-flash', 'agnes-image-2.5-flash'], defaultModel: 'agnes-image-2.1-flash' },
+  video: { models: ['agnes-video-v2.0', 'agnes-video-2.5-flash'], defaultModel: 'agnes-video-v2.0' }
+};
+const AGNES_URLS = {
+  global: 'https://apihub.agnes-ai.com/v1',
+  cn: 'https://api.agnes-ai.cn/v1'
+};
+
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const settings = useSettings((s) => s.settings);
   const setEndpoint = useSettings((s) => s.setEndpoint);
@@ -20,9 +31,10 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     setBusy((b) => ({ ...b, [key]: true }));
     setTest((t) => ({ ...t, [key]: '测试中…' }));
     try {
-      const out = await callNode(key as NodeKind, settings[key], settings[key].defaultModel, '测试连接', {});
+      const out = await callNode(key as NodeKind, settings[key], settings[key].defaultModel, '测试连接', {}, { test: true });
       setTest((t) => ({ ...t, [key]: '✅ 成功：' + String(out).slice(0, 80) }));
     } catch (e: any) {
+      console.error('[testConn]', key, e);
       setTest((t) => ({ ...t, [key]: '❌ ' + (e?.message || e) }));
     } finally {
       setBusy((b) => ({ ...b, [key]: false }));
@@ -74,7 +86,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                 <label>接口路径（非 OpenAI 兼容时填）</label>
                 <input
                   value={cfg.endpointPath}
-                  placeholder={key === 'video' ? '/v1/videos/generations' : '/v1/audio/generations'}
+                  placeholder={key === 'video' ? '/videos（Agnes）或 /videos/generations' : '/audio/speech（Agnes TTS）或 /audio/generations'}
                   onChange={(e) => setEndpoint(key, { endpointPath: e.target.value })}
                 />
               </>
@@ -83,6 +95,42 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               <button className="test-btn" disabled={busy[key]} onClick={() => testConn(key)}>
                 {busy[key] ? '测试中…' : '测试连接'}
               </button>
+              {AGNES[key] && (
+                <>
+                  <button
+                    className="test-btn"
+                    onClick={() =>
+                      setEndpoint(key, {
+                        baseUrl: AGNES_URLS.global,
+                        endpointPath: '',
+                        models: Array.from(new Set([...cfg.models, ...AGNES[key]!.models])),
+                        defaultModel: AGNES[key]!.defaultModel
+                      })
+                    }
+                  >
+                    Agnes 国际
+                  </button>
+                  <button
+                    className="test-btn"
+                    onClick={() =>
+                      setEndpoint(key, {
+                        baseUrl: AGNES_URLS.cn,
+                        endpointPath: '',
+                        models: Array.from(new Set([...cfg.models, ...AGNES[key]!.models])),
+                        defaultModel: AGNES[key]!.defaultModel
+                      })
+                    }
+                  >
+                    Agnes 国内
+                  </button>
+                  <button
+                    className="test-btn"
+                    onClick={() => setEndpoint(key, { baseUrl: 'http://localhost:8000/v1', endpointPath: '' })}
+                  >
+                    本地算力
+                  </button>
+                </>
+              )}
               {test[key] && <span className="test-result">{test[key]}</span>}
             </div>
           </div>

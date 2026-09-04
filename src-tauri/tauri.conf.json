@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "于师傅画布",
+  "productName": "于师傅的导演台",
   "version": "0.1.0",
   "identifier": "com.yushifu.canvas",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "于师傅画布 · 节点式多模态创作台",
+        "title": "于师傅的导演台 · 节点式多模态创作台",
         "width": 1320,
         "height": 860,
         "minWidth": 960,

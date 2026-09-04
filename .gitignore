@@ -28,3 +28,6 @@ Thumbs.db
 
 # 备份压缩包
 backups/
+
+# 临时测试文件
+i.txt

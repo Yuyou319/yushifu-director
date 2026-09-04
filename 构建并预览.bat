@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title 于师傅画布 - 构建并预览
+title 于师傅的导演台 - 构建并预览
 cd /d "%~dp0"
 echo ==============================================
 echo    第 1 步：构建生产版本（npm run build）

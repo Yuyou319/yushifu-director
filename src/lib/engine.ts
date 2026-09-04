@@ -1,6 +1,6 @@
 import { ModeGroup, ModeSpec, Asset, AssetType, Modality } from '../types';
 import { useApp } from '../store';
-import { callGeneric, callImage, callText } from '../api';
+import { callGeneric, callImage, callText, refreshAgnesTask } from '../api';
 import { mockOutput, mockText } from './mock';
 import { countRefs, flattenParams } from './ui';
 
@@ -97,6 +97,19 @@ export function submitTask(opts: SubmitOptions): string {
       }
       clearInterval(timer);
 
+      // Agnes 异步视频/音频：提交即走，记录任务 ID 等待手动刷新
+      const asyncMarker = urls.find((u) => typeof u === 'string' && u.startsWith('AGNES_ASYNC:'));
+      if (asyncMarker) {
+        const [, agnesTaskId, agnesKind] = String(asyncMarker).split(':');
+        useApp.getState().updateTask(task.id, {
+          status: 'running',
+          progress: 5,
+          agnesTaskId,
+          agnesKind: agnesKind as 'video' | 'audio'
+        });
+        return;
+      }
+
       let lastId = '';
       urls.forEach((url, i) => {
         const asset = useApp.getState().addAsset({
@@ -192,6 +205,59 @@ export function submitAndWait(opts: Parameters<typeof submitAdhoc>[0]): Promise<
       }
     });
   });
+}
+
+/** 手动刷新一个 Agnes 异步任务的状态，完成后自动进资产库 */
+export async function refreshTask(taskId: string): Promise<void> {
+  const st = useApp.getState();
+  const task = st.tasks.find((t) => t.id === taskId);
+  if (!task || !task.agnesTaskId) return;
+  const kind = task.agnesKind || (task.output === 'audio' ? 'audio' : 'video');
+  const cfg = st.settings[kind];
+  const base = cfg.baseUrl.replace(/\/$/, '');
+  try {
+    const { status, url } = await refreshAgnesTask(base, cfg.apiKey, task.agnesTaskId, kind);
+    if (url) {
+      const asset = useApp.getState().addAsset({
+        type: task.output,
+        url,
+        title: `${task.modeName} · ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`,
+        prompt: task.prompt,
+        model: cfg.defaultModel,
+        modeId: task.modeId,
+        modeName: task.modeName,
+        groupId: task.groupId,
+        params: {}
+      });
+      useApp.getState().updateTask(taskId, {
+        status: 'done',
+        progress: 100,
+        finishedAt: Date.now(),
+        assetId: asset.id,
+        agnesStatus: status,
+        error: undefined
+      });
+    } else {
+      useApp.getState().updateTask(taskId, {
+        status: 'running',
+        progress: 20,
+        agnesStatus: status,
+        error: `Agnes 状态「${status}」：仍在排队/生成中，稍后再点刷新`
+      });
+    }
+  } catch (e: any) {
+    const msg = e?.message ?? String(e);
+    const failed = msg.includes('任务失败');
+    useApp.getState().updateTask(taskId, {
+      status: failed ? 'error' : 'running',
+      progress: failed ? 100 : 20,
+      finishedAt: failed ? Date.now() : undefined,
+      agnesStatus: failed ? 'failed' : 'query_error',
+      error: failed
+        ? `生成失败（Agnes 侧）：${msg}`
+        : `刷新请求失败（网络/接口错误），请检查网络后重试：${msg}`
+    });
+  }
 }
 
 /**
