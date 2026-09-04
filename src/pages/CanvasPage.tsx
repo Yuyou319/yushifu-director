@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -77,7 +77,8 @@ export default function CanvasPage() {
   const [running, setRunning] = useState(false);
   const [runErr, setRunErr] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const [fileInput, setFileInput] = useState<HTMLInputElement | null>(null);
+  /** 用 useRef 而不是 state：内联 ref 回调 + setState 会造成无限渲染循环（React #185） */
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const settings = useSettings((s) => s.settings);
   const setSettings = useSettings((s) => s.setSettings);
   const [rf, setRf] = useState<ReactFlowInstance | null>(null);
@@ -214,9 +215,9 @@ export default function CanvasPage() {
           <button onClick={doSave}>💾 保存</button>
           <button onClick={doLoad}>📂 载入</button>
           <button onClick={doExport}>⤓ 导出</button>
-          <button onClick={() => fileInput?.click()}>⤒ 导入</button>
+          <button onClick={() => fileInputRef.current?.click()}>⤒ 导入</button>
           <input
-            ref={(el) => setFileInput(el)}
+            ref={fileInputRef}
             type="file"
             accept="application/json"
             style={{ display: 'none' }}
