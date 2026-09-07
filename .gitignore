@@ -1,0 +1,33 @@
+# 依赖
+node_modules/
+.pnpm-store/
+
+# 构建产物
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+
+# Tauri / Rust 构建
+src-tauri/target/
+src-tauri/gen/
+
+# 日志
+*.log
+*.err
+
+# 预览/临时产物
+yushifu-canvas-prototype.exe
+dify-preview.html
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 备份压缩包
+backups/
+
+# 临时测试文件
+i.txt
